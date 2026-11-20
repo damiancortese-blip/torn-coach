@@ -235,7 +235,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
     # 1) energia llena
     if cur >= mx:
         if not flags.get("energy_full"):
-            alerts.append("Energia llena (%d/%d). Entrena %s ahora: gastala antes de tomar Xanax." % (cur, mx, ts))
+            alerts.append("Energia llena (%d/%d). Entrena %s ahora: gastala antes de tomar Xanax.\nhttps://www.torn.com/gym.php" % (cur, mx, ts))
             flags["energy_full"] = True
     else:
         flags["energy_full"] = False
@@ -248,6 +248,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
                 msg += " Ojo: tenes %dE y el tope es %d; entrena antes o desperdicias energia." % (cur, ENERGY_CAP)
             else:
                 msg += " Tip: entrena primero la energia que tenes (%dE) para perder menos si hay sobredosis." % cur
+            msg += "\nhttps://www.torn.com/item.php"
             alerts.append(msg)
             flags["drug_ready"] = True
     else:
@@ -257,7 +258,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
     if cfg["alert_booster"]:
         if booster == 0:
             if not flags.get("booster_ready"):
-                alerts.append("Cooldown de boosters en 0: podes usar latas/FHC.")
+                alerts.append("Cooldown de boosters en 0: podes usar latas/FHC.\nhttps://www.torn.com/item.php")
                 flags["booster_ready"] = True
         else:
             flags["booster_ready"] = False
@@ -293,7 +294,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
         st["ps"] = {k: ps.get(k, 0) for k in ("xantaken", "exttaken", "overdosed", "rehabs")}
         if st.get("ap", 0) >= cfg["rehab_ap"]:
             if not flags.get("rehab_alerted"):
-                alerts.append("Adiccion estimada ~%d AP (es una estimacion, confirma en el icono de drogas del juego). Evalua ir a rehab a Suiza; cada rehab nuevo sale mas caro, no hagas varios clics seguidos." % st["ap"])
+                alerts.append("Adiccion estimada ~%d AP (es una estimacion, confirma en el icono de drogas del juego). Evalua ir a rehab a Suiza; cada rehab nuevo sale mas caro, no hagas varios clics seguidos.\nhttps://www.torn.com/travelagency.php" % st["ap"])
                 flags["rehab_alerted"] = True
         elif st.get("ap", 0) < cfg["rehab_ap"] * 0.5:
             flags["rehab_alerted"] = False
@@ -313,7 +314,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
     today = utc.strftime("%Y-%m-%d")
     if refills is not None and utc.hour >= cfg["refill_hour"]:
         if not refills.get("energy_refill_used") and st.get("refill_reminded") != today:
-            alerts.append("Todavia no usaste el refill de energia de hoy (se resetea a las 00:00 TCT). Usalo cuando tengas la barra baja.")
+            alerts.append("Todavia no usaste el refill de energia de hoy (se resetea a las 00:00 TCT). Usalo cuando tengas la barra baja.\nCiudad > Points Building: https://www.torn.com/city.php")
             st["refill_reminded"] = today
 
     # 7) resumen diario
