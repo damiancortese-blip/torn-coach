@@ -37,6 +37,7 @@ jobs:
           CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
           STATE_FILE: state.json
           TRAIN_STAT: strength
+          AP_SET: ${{ vars.AP_SET }}
         run: python3 torn_coach.py --once
 
       - name: Guardar estado
