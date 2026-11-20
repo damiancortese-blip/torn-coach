@@ -100,6 +100,7 @@ def load_config():
         "toleration": float(env.get("TOLERATION", "0")),
         "rehab_ap": float(env.get("REHAB_AP_ALERT", "105")),
         "alert_booster": env.get("ALERT_BOOSTER", "1") not in ("0", "false", ""),
+        "ap_set": float(env.get("AP_SET") or "-1"),
         "state_file": os.path.expanduser(env.get("STATE_FILE", "~/.torn_coach_state.json")),
     }
 
@@ -221,7 +222,7 @@ def build_digest(cfg, st, stats, now):
     return "\n".join(lines)
 
 
-def process(cfg, st, bars, cds, stats, now, ps=None, refills=None):
+def process(cfg, st, bars, cds, stats, now, ps=None, refills=None, travel=None):
     """Devuelve la lista de avisos. Recibe datos ya leidos, asi se puede probar sin red."""
     alerts = []
     flags = st.setdefault("flags", {})
@@ -269,6 +270,12 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None):
         del hist[:-500]
 
     # 5) personalstats: Xanax, sobredosis, rehab
+    if cfg["ap_set"] >= 0 and st.get("ap_set_applied") != cfg["ap_set"]:
+        st["ap"] = cfg["ap_set"]
+        st["ap_ts"] = now
+        st["ap_set_applied"] = cfg["ap_set"]
+        flags["rehab_alerted"] = False
+        alerts.append("Adiccion ajustada a ~%d AP segun tu dato." % st["ap"])
     if ps is not None:
         update_ap(st, now)
         prev = st.get("ps")
@@ -291,6 +298,16 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None):
         elif st.get("ap", 0) < cfg["rehab_ap"] * 0.5:
             flags["rehab_alerted"] = False
 
+    # 5b) viajes: avisa al aterrizar
+    if travel is not None:
+        left = int(travel.get("time_left", 0) or 0)
+        dest = travel.get("destination", "")
+        if left > 0:
+            flags["flying_to"] = dest
+        elif flags.get("flying_to"):
+            alerts.append("Aterrizaste en %s." % flags["flying_to"])
+            flags["flying_to"] = ""
+
     # 6) refill de puntos (una vez por dia, se resetea 00:00 TCT = UTC)
     utc = dt.datetime.fromtimestamp(now, dt.timezone.utc)
     today = utc.strftime("%Y-%m-%d")
@@ -308,7 +325,7 @@ def process(cfg, st, bars, cds, stats, now, ps=None, refills=None):
 
 def poll(cfg, st, now=None):
     now = now or time.time()
-    d = api("bars,cooldowns,battlestats", cfg["key"])
+    d = api("bars,cooldowns,battlestats,travel", cfg["key"])
     bars = {"energy": d["energy"]}
     cds = d.get("cooldowns", {})
     stats = {k: float(d[k]) for k in ("strength", "speed", "defense", "dexterity")}
@@ -320,7 +337,8 @@ def poll(cfg, st, now=None):
     if now - st.get("refill_check", 0) >= 840:
         refills = api("refills", cfg["key"]).get("refills", {})
         st["refill_check"] = now
-    return process(cfg, st, bars, cds, stats, now, ps, refills), stats
+    travel = d.get("travel")
+    return process(cfg, st, bars, cds, stats, now, ps, refills, travel), stats
 
 
 def run(cfg, once=False):
